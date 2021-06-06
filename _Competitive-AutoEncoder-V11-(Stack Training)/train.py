@@ -8,50 +8,48 @@ import torch
 import torch.nn as nn
 import torchvision
 import torch.optim as optim
-# from torch.optim import lr_scheduler
 from torchvision import datasets, transforms
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
-# import torch.nn.functional as F
-# import numpy as np
-# import math
-# import random
 
-from model import Competitive_Autoencoder
 import os
 import sys
-
+sys.path.append('E:/Chris/Competitive-Autoencoder/_Competitive-AutoEncoder-V11-(Stack Training)/')
+from model import Competitive_Autoencoder
 
 ''' Device, Path config'''
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-sys.path.append('E:/Chris/Competitive-Autoencoder/')
-os.chdir('E:/Chris/Competitive-Autoencoder/')
+working_path = "E:/Chris/Competitive-Autoencoder/"
+path = "_Competitive-AutoEncoder-V11-(Stack Training)/pthSaves/" # Save and load path
+model_type = "81featuresLifetime5"
+sys.path.append(working_path)
+os.chdir(working_path)
 print("Working on path: ", os.getcwd())
 
 ''' Parameters (CHange Anything Here!) '''
+stacked = True
 transform = transforms.ToTensor()
 batch_size = 150
+interface = "spyder"
 
 ''' Save-Load functions '''
-def save_model_optimizer(model, optimizer = None, filename = "CompAutoModel"):
-    pthSaves = "_Competitive-AutoEncoder-V11-(Stack Training)/pthSaves/"
+def save_model_optimizer(model, save_path, optimizer = None, filename = "CompAutoModel"):
     # creating save folder if not already there
-    if not os.path.isdir(pthSaves): 
-        os.makedirs(pthSaves)
+    if not os.path.isdir(save_path): 
+        os.makedirs(save_path)
     
     if optimizer == None:
         torch.save({
             'model_state': model.state_dict()
-        }, pthSaves+filename+".pth")
+        }, save_path+filename+".pth")
     else:
         torch.save({
             'model_state': model.state_dict(),
             'optim_state': optimizer.state_dict()
-        }, pthSaves+filename+".pth")
+        }, save_path+filename+".pth")
     
-def load_model(filename):
-    path = "_Competitive-AutoEncoder-V11-(Stack Training)/pthSaves/"
-    checkpoint = torch.load(path+filename+".pth", map_location = 'cpu')
+def load_model(filename, load_path):
+    checkpoint = torch.load(load_path+filename+".pth", map_location = 'cpu')
     model_obj = Competitive_Autoencoder()
     model_obj.load_state_dict(checkpoint['model_state'])
     model_obj.eval()
@@ -69,7 +67,10 @@ def train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch):
     clear_output()
     loss_str = "{:.4f}".format(loss)
     loss_mssg.append('Epoch:' + str(epoch + 1) + ', Loss:' + loss_str)
-    print(*loss_mssg, sep = "\n")
+    if(interface == "spyder"):
+        print(loss_mssg[epoch])
+    if(interface == "jupyter"):
+        print(*loss_mssg, sep = "\n")
 
     # Graph out the loss:
     loss_y.append(loss.cpu().detach().numpy())
@@ -161,6 +162,7 @@ outputs = []
 epoch_x = []
 loss_y  = []
 loss_mssg = []
+save_path = "_Competitive-AutoEncoder-V11-(Stack Training)/pthSaves/stack2/" # Save and load path
 
 for epoch in range(num_epochs):
     for (img, _) in data_loader:
@@ -184,17 +186,77 @@ for epoch in range(num_epochs):
     train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch)
         
     # Save the model of the current Epoch (starting point for early ending)
-    save_model_optimizer(model, optimizer, "81featuresLifetime5_ep" + str(epoch))
+    save_model_optimizer(model, save_path, optimizer, "81featuresLifetime5_ep" + str(epoch))
 
 #%%
-# Loading the best trained model
-which = 10
-loadfile = "81featuresLifetime5_ep" + str(which)
-model_load, optim_load = load_model(loadfile)
+# Loading the best trained model from stack #
+ep = 8
+stack = 1
+loadfile = model_type + "_ep" + str(ep)
+load_path = path + "stack" + str(stack) + "/" # Save and load path
+model_load, optim_load = load_model(loadfile, load_path)
 
 #%%
 # Plotting the images for convolutional Autoencoder
 feed_forard_visualize(outputs)
-
+#%%
 # Deconvolution layer filter plotting
 deconv_filter_plot(model_load)
+
+#%%
+# Stack trainable modeling
+# Loading the best trained model
+ep = 8
+stack = 1
+loadfile = model_type + "_ep" + str(ep)
+load_path = path + "stack" + str(stack) + "/" # Save and load path
+prev_model, _ = load_model(loadfile, load_path)
+
+# freezing the parameters of the previous model
+for param in prev_model.features.parameters():
+    param.requires_grad = False
+prev_model.to(device)
+
+# constructing the new model shell
+new_model = Competitive_Autoencoder().to(device)
+
+#%%
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr = 1e-3)
+
+# Data MNIST
+mnist_data = datasets.MNIST(root='./data', train = True, download = False, transform = transform)
+data_loader = torch.utils.data.DataLoader(dataset= mnist_data, batch_size = batch_size, shuffle = True)
+
+
+# STACKED Training Loop
+num_epochs = 12
+outputs = []
+epoch_x = []
+loss_y  = []
+loss_mssg = []
+
+for epoch in range(num_epochs):
+    for (img, _) in data_loader:
+        #Reconstructed img, Likely going to be 
+        img = img.to(device)
+        
+        #Forward Pass
+        recon  = model(img, stacked = stacked, prev_model = prev_model)
+        loss = criterion(recon, img)
+        
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    
+    # Take first 9 examples to be plotted for each # epochs
+    if((epoch+1)%2 == 0):
+        outputs.append((epoch, img[0:9, :, :, :], recon[0:9, :, :, :], ))
+    
+    # Printing Training info
+    train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch)
+        
+    # Save the model of the current Epoch
+    
+    save_model_optimizer(model, optimizer, "81featuresLifetime5_ep" + str(epoch))

@@ -25,24 +25,42 @@ class Competitive_Autoencoder(nn.Module):
         super().__init__()
         
         #Image size:N, 28, 28
+        # Notes:
+        #   Final with and without relu almost the same
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 81, 5, stride=1, padding = 2),     
             nn.ReLU(),
             nn.BatchNorm2d(81),
-#             nn.Conv2d(81, 81, 5, stride=1, padding = 2),
-#             nn.ReLU(),
-#             nn.BatchNorm2d(81),
             nn.Conv2d(81, 81, 5, stride=1, padding = 2),
+            nn.ReLU(), # difference in this relu layer
             nn.BatchNorm2d(81)
         )
-        self.transConv1 = nn.ConvTranspose2d(in_channels=81, out_channels=1, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
         
-    def forward(self, x):
+        # self.stack_encoder = nn.Sequential(
+        #     nn.Conv2d(1, 81, 5, stride=1, padding = 2),     
+        #     nn.ReLU(),
+        #     nn.BatchNorm2d(81),
+        #     nn.Conv2d(81, 81, 5, stride=1, padding = 2),
+        #     nn.ReLU(), # difference in this relu layer
+        #     nn.BatchNorm2d(81)
+        # )
+        
+        self.decoder = nn.ConvTranspose2d(in_channels=81, out_channels=1, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
+        
+    def forward(self, x, stacked = False, prev_model = None):
+        if (stacked):
+            if (prev_model != None):
+                x = prev_model.bottleneck(x)
+            else:
+                print("ERROR - no previous model given for stack training")
         encoded = self.encoder(x)
         winner = self.spatial_sparsity_(encoded)
         self.lifetime_sparsity_(encoded, winner, k_rate)
-        decoded = self.transConv1(encoded)
+        decoded = self.decoder(encoded)
         return decoded
+    
+    def bottleneck(self, x):
+        return self.encoder(x)
     
     # Spatial Sparsity reconstructs the activation map, remain only one winner neuron of each feature map and rest to 0
     # with torch.no_grad() temporarily sets all of the requires_grad flags to false
