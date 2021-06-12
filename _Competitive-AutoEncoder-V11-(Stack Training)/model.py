@@ -21,46 +21,58 @@ k_rate = 0.05
 '''
 class Competitive_Autoencoder(nn.Module):
 
-    def __init__(self):
+    # num_features should increase as layers increase?
+    def __init__(self, num_features, prev_num_features = None):
         super().__init__()
-        
+            
         #Image size:N, 28, 28
         # Notes:
         #   Final with and without relu almost the same
-        self.encoder = nn.Sequential(
-            nn.Conv2d(1, 81, 5, stride=1, padding = 2),     
+        #   Base layer would first try to minimize the loss
+        #   number of features would be 32, 64, 128
+        self.base_encoder = nn.Sequential(
+            nn.Conv2d(1, num_features, 5, stride=1, padding = 2),     
             nn.ReLU(),
-            nn.BatchNorm2d(81),
-            nn.Conv2d(81, 81, 5, stride=1, padding = 2),
-            nn.ReLU(), # difference in this relu layer
-            nn.BatchNorm2d(81)
+            nn.BatchNorm2d(num_features),
+            nn.Conv2d(num_features, num_features, 5, stride=1, padding = 2),
+            nn.ReLU(), 
+            nn.BatchNorm2d(num_features),
+            nn.Conv2d(num_features, num_features, 5, stride=1, padding = 2),
+            nn.ReLU(), 
+            nn.BatchNorm2d(num_features)
         )
         
-        # self.stack_encoder = nn.Sequential(
-        #     nn.Conv2d(1, 81, 5, stride=1, padding = 2),     
-        #     nn.ReLU(),
-        #     nn.BatchNorm2d(81),
-        #     nn.Conv2d(81, 81, 5, stride=1, padding = 2),
-        #     nn.ReLU(), # difference in this relu layer
-        #     nn.BatchNorm2d(81)
-        # )
+        self.stack_encoder = nn.Sequential(
+            nn.Conv2d(prev_num_features, num_features, 5, stride=1, padding = 2),     
+            nn.ReLU(),
+            nn.BatchNorm2d(num_features),
+        )
         
-        self.decoder = nn.ConvTranspose2d(in_channels=81, out_channels=1, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
+        self.decoder = nn.ConvTranspose2d(in_channels=num_features, out_channels=1, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
         
-    def forward(self, x, stacked = False, prev_model = None):
-        if (stacked):
-            if (prev_model != None):
-                x = prev_model.bottleneck(x)
-            else:
-                print("ERROR - no previous model given for stack training")
-        encoded = self.encoder(x)
+        # encoder_in_use attribute -- if no previous_num_feature is given, it is base model
+        if prev_num_features == None:
+            self.encoder_in_use = self.base_encoder
+        else:
+            self.encoder_in_use = self.stack_encoder
+        
+    # is previous model is given, is a stacking layer
+    def forward(self, x, prev_models = None):
+        if (prev_models != None):
+            # need to forward through all of the previous models
+            for model in prev_models:
+                x = model.bottleneck(x)
+        else:
+            encoder_shell = self.encoder_in_use
+            
+        encoded = encoder_shell(x)
         winner = self.spatial_sparsity_(encoded)
         self.lifetime_sparsity_(encoded, winner, k_rate)
         decoded = self.decoder(encoded)
         return decoded
     
     def bottleneck(self, x):
-        return self.encoder(x)
+        return self.encoder_in_use(x)
     
     # Spatial Sparsity reconstructs the activation map, remain only one winner neuron of each feature map and rest to 0
     # with torch.no_grad() temporarily sets all of the requires_grad flags to false
