@@ -97,7 +97,7 @@ class Competitive_Autoencoder(nn.Module):
 
         encoded = self.encoder_in_use(x)
         winner = self.spatial_sparsity_(encoded)
-        self.lifetime_sparsity_(encoded, winner, self.k_rate)
+        self.lifetime_sparsity_(encoded, winner)
         decoded = self.decoder(encoded)
         return decoded
     
@@ -144,7 +144,7 @@ class Competitive_Autoencoder(nn.Module):
     - Pick the top-k percent "winner batches" for every feature. The rest of the batches will be zeroed out.
     - With torch.no_grad() temporarily sets all of the requires_grad flags to false (probably not needed)
     '''
-    def lifetime_sparsity_(self, hiddenMaps, maxval, k_percent):
+    def lifetime_sparsity_(self, hiddenMaps, maxval):
         with torch.no_grad():
             shape = hiddenMaps.shape  #torch.Size([batch_size, feature_num, 26, 26])
             n_batches = shape[0]

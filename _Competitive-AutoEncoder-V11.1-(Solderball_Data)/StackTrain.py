@@ -14,15 +14,13 @@ import os
 import sys
 import math
 version = "_Competitive-AutoEncoder-V11.1-(Solderball_Data)"
-model_type = "81featuresLifetime5" 
 working_path = "E:/Chris/Competitive-Autoencoder/"
-path = version + "/pthSaves/" # Save and load path
 sys.path.append(working_path + version + '/')
 from base_model import Competitive_Autoencoder
 
 ''' Parameters (CHange Anything Here!) '''
 transform = transforms.ToTensor()
-batch_size = 100
+batch_size = 50
 interface = "spyder"
 
 ''' Device, Path config'''
@@ -60,14 +58,32 @@ def load_model(filename, load_path):
         optim_obj.load_state_dict(checkpoint['optim_state'])
         return model_obj, optim_obj
 
+def path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size):
+    save_folder = "StackTraining_i" + str(starting_num_features) + "_mul" + str(feature_increasing_constant) + "_L" + str(k_percent) + "_bs" + str(batch_size)
+    path = version + "/Results/" + save_folder + "/" # Save and load path
+    
+    if os.path.isdir(path): 
+        print("WARNING: " + save_folder + " folder already exists... do you wish to overwrite inside files?\nPress \"e\" to STOP, \"y\" to proceed. Write () reason to create new folder")
+        user = input("")
+    else:
+        return path
+    
+    if user == "y":
+        return path
+    elif user == "e":
+        sys.exit()
+    else:
+        save_folder = save_folder + "(" + user +")"
+        return version + "/Results/" + save_folder + "/" # Save and load path
+    
 ''' Visualizing functions '''
 def train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch):
     # Print information:
     clear_output()
-    loss_str = "{:.4f}".format(loss)
-    loss_mssg.append('Epoch:' + str(epoch + 1) + ', Loss:' + loss_str)
+    loss_str = 'Epoch:' + str(epoch + 1) + ', Loss:' + "{:.4f}".format(loss)
+    loss_mssg.append(loss_str)
     if(interface == "spyder"):
-        print(loss_mssg)
+        print(loss_mssg[-1])
     if(interface == "jupyter"):
         print(*loss_mssg, sep = "\n")
 
@@ -124,16 +140,13 @@ def deconv_filter_plot(model_load):
     # be (H, W, C)
     # print(filter_img.shape)
     plt.imshow(filter_img.permute(1, 2, 0))
+    # dirs.append(filter_img.permute(1, 2, 0))
 
 
 #%%
 ''' CHANGES IN MODEL TO NOTE:
     - Model now needs a defined num_features, and prev_models = [base_model, stack_1, stack_2,....., stack_n]
 '''
-# Declaring model and stuff
-# model = Competitive_Autoencoder(32).to(device)
-# criterion = nn.MSELoss()
-# optimizer = optim.Adam(model.parameters(), lr = 1e-3)
 
 # Data MNIST
 mnist_data = datasets.MNIST(root='./data', train = True, download = False, transform = transform)
@@ -144,6 +157,11 @@ data_loader = torch.utils.data.DataLoader(dataset= mnist_data, batch_size = batc
 '''
 Strategy:
     Get base model
+    Save Folder example format: "StackTraining_i32_mul1.5_L10_bs100"
+    Try: 
+        increasing epoch
+        increasing lifetime sparsity
+        increasing batch size
 '''
 k_percent = 5
 num_stacks = 5
@@ -151,16 +169,20 @@ starting_num_features = 32
 feature_increasing_constant = 1.5
 iter_num_features = starting_num_features
 prev_models = []
+# dirs = []
 k = math.floor(batch_size*k_percent*0.01)
-"StackTraining_s32_mu1.5_L10"
+increasing_epoch = 1
 
-for stack in range(num_stacks):
+path = path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size)
+
+
+for i, stack in enumerate(num_stacks):
     
-    # Resettign phase to reset everythiogn
+    # Resetting phase to reset everything
     if stack == 0:
         model = Competitive_Autoencoder(starting_num_features, k).to(device)
     else:
-        iter_num_features = int(iter_num_features * 1.5)
+        iter_num_features = int(iter_num_features * feature_increasing_constant)
         model = Competitive_Autoencoder(iter_num_features, k, prev_models).to(device)
     
     criterion = nn.MSELoss()
@@ -170,34 +192,39 @@ for stack in range(num_stacks):
     loss_y  = []
     loss_mssg = []
     save_path = path + "stack" + str(stack+1) + "/"
-    
-    # All layers are only trained for 1 epoch for now
-    for i, (img, _) in enumerate(data_loader):
-        #Reconstructed img, Likely going to be 
-        img = img.to(device)
         
-        #Forward Pass
-        recon  = model(img)
-        loss = criterion(recon, img)
+    num_epochs = (i+1)+(i*increasing_epoch)
         
-        # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    for epoch in range(0, num_epochs):
         
-        epoch_x.append(i)
-        loss_y.append(loss.cpu().detach().numpy()) 
-        
-        # Take first 9 examples to be plotted for each # epochs
-        if((i+1)%125 == 0):
-            outputs.append((i, img[0:9, :, :, :], recon[0:9, :, :, :], ))
+        # All layers are only trained for 1 epoch for now
+        for i, (img, _) in enumerate(data_loader):
+            #Reconstructed img, Likely going to be 
+            img = img.to(device)
             
-            # Printing Training info
-            train_info_print(loss, loss_mssg, epoch_x, loss_y, i)
+            #Forward Pass
+            recon  = model(img)
+            loss = criterion(recon, img)
             
-            # Save the model of the current Epoch (starting point for early ending)
-            save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "features_Life5_ep" + str(i))
+            # Backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            epoch_x.append(i)
+            loss_y.append(loss.cpu().detach().numpy()) 
+            
+            # Every quarter of the training, will have data saved and output
+            # if((i+1)%(len(data_loader)/4) == 0):
+                
+        outputs.append((epoch, img[0:9, :, :, :], recon[0:9, :, :, :], ))
         
+        # Printing Training info
+        train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch)
+        
+        # Save the model of the current Epoch (starting point for early ending)
+        save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "ep" + str(epoch))
+
     # Plotting the images for convolutional Autoencoder
     feed_forard_visualize(outputs)
     
@@ -209,3 +236,5 @@ for stack in range(num_stacks):
         para.requires_grad = False
     prev_models.append(model)
 
+#%%
+print(len(data_loader))
