@@ -14,15 +14,13 @@ import os
 import sys
 import math
 version = "_Competitive-AutoEncoder-V11.1-(Solderball_Data)"
-model_type = "81featuresLifetime5" 
 working_path = "E:/Chris/Competitive-Autoencoder/"
-path = version + "/pthSaves/" # Save and load path
 sys.path.append(working_path + version + '/')
 from base_model import Competitive_Autoencoder
 
 ''' Parameters (CHange Anything Here!) '''
 transform = transforms.ToTensor()
-batch_size = 100
+batch_size = 70
 interface = "spyder"
 
 ''' Device, Path config'''
@@ -59,6 +57,26 @@ def load_model(filename, load_path):
         optim_obj = torch.optim.Adam(model_obj.parameters(), lr = 0)
         optim_obj.load_state_dict(checkpoint['optim_state'])
         return model_obj, optim_obj
+
+def path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size):
+    save_folder = "StackTraining_i" + str(starting_num_features) + "_mul" + str(feature_increasing_constant) + "_L" + str(k_percent) + "_bs" + str(batch_size)
+    path = version + "/Results/" + save_folder + "/" # Save and load path
+    
+    print("Training for: " + save_folder)
+    
+    if os.path.isdir(path): 
+        print("WARNING: " + save_folder + " folder already exists... do you wish to overwrite inside files?\nPress \"e\" to STOP, \"y\" to proceed. Write () reason to create new folder")
+        user = input("")
+    else:
+        return path
+    
+    if user == "y":
+        return path
+    elif user == "e":
+        sys.exit()
+    else:
+        save_folder = save_folder + "(" + user +")"
+        return version + "/Results/" + save_folder + "/" # Save and load path
 
 ''' Visualizing functions '''
 def train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch):
@@ -119,12 +137,12 @@ def deconv_filter_plot(model_load):
     kernels = kernels / kernels.max()
     # print(kernels.shape)
     # kernels is a (Tensor or list) – 4D mini-batch Tensor of shape (B x C x H x W) or a list of images all of the same size
-    filter_img = torchvision.utils.make_grid(kernels, nrow = 9)
+    filter_img = torchvision.utils.make_grid(kernels, nrow = 11)
     # change ordering since matplotlib requires images to 
     # be (H, W, C)
     # print(filter_img.shape)
     plt.imshow(filter_img.permute(1, 2, 0))
-
+    plt.show()
 
 #%%
 ''' CHANGES IN MODEL TO NOTE:
@@ -146,13 +164,15 @@ Strategy:
     Get base model
 '''
 k_percent = 5
-num_stacks = 5
-starting_num_features = 32 
-feature_increasing_constant = 1.5
+num_stacks = 3
+starting_num_features = 121
+feature_increasing_constant = 1
 iter_num_features = starting_num_features
 prev_models = []
 k = math.floor(batch_size*k_percent*0.01)
 "StackTraining_s32_mu1.5_L10"
+
+path = path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size)
 
 for stack in range(num_stacks):
     
@@ -160,7 +180,7 @@ for stack in range(num_stacks):
     if stack == 0:
         model = Competitive_Autoencoder(starting_num_features, k).to(device)
     else:
-        iter_num_features = int(iter_num_features * 1.5)
+        iter_num_features = int(iter_num_features * feature_increasing_constant)
         model = Competitive_Autoencoder(iter_num_features, k, prev_models).to(device)
     
     criterion = nn.MSELoss()
@@ -189,14 +209,14 @@ for stack in range(num_stacks):
         loss_y.append(loss.cpu().detach().numpy()) 
         
         # Take first 9 examples to be plotted for each # epochs
-        if((i+1)%125 == 0):
+        if((i+1)%(math.floor(len(data_loader)/4)) == 0):
             outputs.append((i, img[0:9, :, :, :], recon[0:9, :, :, :], ))
             
             # Printing Training info
             train_info_print(loss, loss_mssg, epoch_x, loss_y, i)
             
             # Save the model of the current Epoch (starting point for early ending)
-            save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "features_Life5_ep" + str(i))
+            save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "ep" + str(i))
         
     # Plotting the images for convolutional Autoencoder
     feed_forard_visualize(outputs)
