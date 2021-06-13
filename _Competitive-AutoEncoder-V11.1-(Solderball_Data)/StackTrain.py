@@ -58,9 +58,11 @@ def load_model(filename, load_path):
         optim_obj.load_state_dict(checkpoint['optim_state'])
         return model_obj, optim_obj
 
-def path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size):
-    save_folder = "StackTraining_i" + str(starting_num_features) + "_mul" + str(feature_increasing_constant) + "_L" + str(k_percent) + "_bs" + str(batch_size)
+def path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size, increasing_epoch):
+    save_folder = "StackTraining_i" + str(starting_num_features) + "_mul" + str(feature_increasing_constant) + "_L" + str(k_percent) + "_bs" + str(batch_size) + "_incrEP" + str(increasing_epoch)
     path = version + "/Results/" + save_folder + "/" # Save and load path
+    
+    print("Training for: " + save_folder)
     
     if os.path.isdir(path): 
         print("WARNING: " + save_folder + " folder already exists... do you wish to overwrite inside files?\nPress \"e\" to STOP, \"y\" to proceed. Write () reason to create new folder")
@@ -88,9 +90,10 @@ def train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch):
         print(*loss_mssg, sep = "\n")
 
     # Graph out the loss:
-    if epoch != 0:
-        plt.plot(epoch_x,loss_y)
-        plt.show()
+    # if epoch != 0:
+    plt.figure()        
+    plt.plot(epoch_x,loss_y)
+    plt.show()
 
 def feed_forard_visualize(outputs):
     ##### Plotting the images for convolutional Autoencoder
@@ -114,6 +117,7 @@ def feed_forard_visualize(outputs):
                 break
             plt.subplot(2, 9, 9 + i + 1)
             plt.imshow(item[0])
+    plt.show()
 
 def deconv_filter_plot(model_load):
     plt.figure()
@@ -140,6 +144,7 @@ def deconv_filter_plot(model_load):
     # be (H, W, C)
     # print(filter_img.shape)
     plt.imshow(filter_img.permute(1, 2, 0))
+    plt.show()
     # dirs.append(filter_img.permute(1, 2, 0))
 
 
@@ -173,10 +178,10 @@ prev_models = []
 k = math.floor(batch_size*k_percent*0.01)
 increasing_epoch = 1
 
-path = path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size)
+path = path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size, increasing_epoch)
 
 
-for i, stack in enumerate(num_stacks):
+for stack in range(num_stacks):
     
     # Resetting phase to reset everything
     if stack == 0:
@@ -193,9 +198,11 @@ for i, stack in enumerate(num_stacks):
     loss_mssg = []
     save_path = path + "stack" + str(stack+1) + "/"
         
-    num_epochs = (i+1)+(i*increasing_epoch)
+    num_epochs = 1 + (stack*increasing_epoch)
         
     for epoch in range(0, num_epochs):
+        
+        print("Tranining stack: " + str(stack+1)+", epoch: "+str(epoch+1))
         
         # All layers are only trained for 1 epoch for now
         for i, (img, _) in enumerate(data_loader):
