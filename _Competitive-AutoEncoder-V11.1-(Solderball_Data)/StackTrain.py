@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import math
+import numpy as np
 version = "_Competitive-AutoEncoder-V11.1-(Solderball_Data)"
 working_path = "E:/Chris/Competitive-Autoencoder/"
 sys.path.append(working_path + version + '/')
@@ -20,7 +21,7 @@ from base_model import Competitive_Autoencoder
 
 ''' Parameters (CHange Anything Here!) '''
 transform = transforms.ToTensor()
-batch_size = 70
+batch_size = 50
 interface = "spyder"
 
 ''' Device, Path config'''
@@ -90,17 +91,17 @@ def train_info_print(loss, loss_mssg, epoch_x, loss_y, epoch):
         print(*loss_mssg, sep = "\n")
 
     # Graph out the loss:
-    if epoch != 0:
-        plt.plot(epoch_x,loss_y)
-        plt.show()
+    # plt.figure()
+    # plt.title("Epoch: " + str(epoch)+ ", Loss: " + str(loss))
+    # plt.plot(epoch_x,loss_y)
+    # plt.show()
 
 def feed_forard_visualize(outputs):
     ##### Plotting the images for convolutional Autoencoder
     
     for k in range(0, len(outputs), 1):
         plt.figure(figsize = (9,2))
-        plt.gray()
-        
+        plt.title("Epoch: " + str(outputs[k][0])+ ", Loss: " + str(outputs[k][3]))
         #because it is a Tensor, so we want to detach and then convert into a numpy array
         imgs = outputs[k][1].cpu().detach().numpy()
         recon = outputs[k][2].cpu().detach().numpy()
@@ -116,10 +117,10 @@ def feed_forard_visualize(outputs):
                 break
             plt.subplot(2, 9, 9 + i + 1)
             plt.imshow(item[0])
-
-def deconv_filter_plot(model_load):
+            
+def deconv_filter_plot(model_load, epoch, loss):
     plt.figure()
-    plt.gray()
+    plt.title("Epoch: " + str(epoch)+ ", Loss: " + str("{:.4f}".format(loss)))
     model_case = model_load
     
     children = list(model_case.children())
@@ -137,7 +138,7 @@ def deconv_filter_plot(model_load):
     kernels = kernels / kernels.max()
     # print(kernels.shape)
     # kernels is a (Tensor or list) – 4D mini-batch Tensor of shape (B x C x H x W) or a list of images all of the same size
-    filter_img = torchvision.utils.make_grid(kernels, nrow = 11)
+    filter_img = torchvision.utils.make_grid(kernels, nrow = 8)
     # change ordering since matplotlib requires images to 
     # be (H, W, C)
     # print(filter_img.shape)
@@ -148,15 +149,39 @@ def deconv_filter_plot(model_load):
 ''' CHANGES IN MODEL TO NOTE:
     - Model now needs a defined num_features, and prev_models = [base_model, stack_1, stack_2,....., stack_n]
 '''
-# Declaring model and stuff
-# model = Competitive_Autoencoder(32).to(device)
-# criterion = nn.MSELoss()
-# optimizer = optim.Adam(model.parameters(), lr = 1e-3)
+mean = np.array([0.5, 0.5, 0.5])
+std = np.array([0.25, 0.25, 0.25])
 
-# Data MNIST
-mnist_data = datasets.MNIST(root='./data', train = True, download = False, transform = transform)
-data_loader = torch.utils.data.DataLoader(dataset= mnist_data, batch_size = batch_size, shuffle = True)
+data_transforms = {
+    'train': transforms.Compose([
+        # transforms.RandomResizedCrop(224),
+        # transforms.RandomHorizontalFlip(),
+        transforms.CenterCrop((120, 120)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std), 
+        transforms.RandomCrop((40, 40)),
+    ]),
+    'val': transforms.Compose([
+        # transforms.Resize(256),
+        # transforms.CenterCrop(224),
+        transforms.CenterCrop((120, 120)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ]),
+}
 
+data_dir = 'data/InariPads/'
+image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
+                                          data_transforms[x])
+                  for x in ['train', 'val']}
+
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size,
+                                             shuffle=True, num_workers=0)
+              for x in ['train', 'val']}
+
+data_loader = dataloaders['train']
+# dataiter = iter(data_loader)
+# print(next(dataiter))
 #%%
 
 '''
@@ -164,19 +189,19 @@ Strategy:
     Get base model
 '''
 k_percent = 5
-num_stacks = 3
-starting_num_features = 121
+num_stacks = 1
+num_epochs = 40
+starting_num_features = 64
 feature_increasing_constant = 1
 iter_num_features = starting_num_features
 prev_models = []
 k = math.floor(batch_size*k_percent*0.01)
-"StackTraining_s32_mu1.5_L10"
 
 path = path_creator(starting_num_features, feature_increasing_constant, k_percent, batch_size)
 
 for stack in range(num_stacks):
     
-    # Resettign phase to reset everythiogn
+    # Resetting phase to reset everything
     if stack == 0:
         model = Competitive_Autoencoder(starting_num_features, k).to(device)
     else:
@@ -185,44 +210,49 @@ for stack in range(num_stacks):
     
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr = 1e-3)
-    outputs = []
+    save_path = path + "stack" + str(stack+1) + "/"
     epoch_x = []
     loss_y  = []
-    loss_mssg = []
-    save_path = path + "stack" + str(stack+1) + "/"
     
-    # All layers are only trained for 1 epoch for now
-    for i, (img, _) in enumerate(data_loader):
-        #Reconstructed img, Likely going to be 
-        img = img.to(device)
+    for epoch in range(0, num_epochs):
         
-        #Forward Pass
-        recon  = model(img)
-        loss = criterion(recon, img)
+        outputs = []
+        loss_mssg = []
         
-        # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        epoch_x.append(i)
-        loss_y.append(loss.cpu().detach().numpy()) 
-        
-        # Take first 9 examples to be plotted for each # epochs
-        if((i+1)%(math.floor(len(data_loader)/4)) == 0):
-            outputs.append((i, img[0:9, :, :, :], recon[0:9, :, :, :], ))
-            
-            # Printing Training info
-            train_info_print(loss, loss_mssg, epoch_x, loss_y, i)
-            
-            # Save the model of the current Epoch (starting point for early ending)
-            save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "ep" + str(i))
-        
-    # Plotting the images for convolutional Autoencoder
-    feed_forard_visualize(outputs)
+        print("Tranining stack: " + str(stack+1)+", epoch: "+str(epoch+1))
     
-    # Deconvolution layer filter plotting
-    deconv_filter_plot(model)
+        # All layers are only trained for 1 epoch for now
+        for i, (img, _) in enumerate(data_loader):
+            #Reconstructed img, Likely going to be 
+            img = img.to(device)
+            
+            #Forward Pass
+            recon  = model(img)
+            loss = criterion(recon, img)
+            
+            # Backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            epoch_x.append(i)
+            loss_y.append(loss.cpu().detach().numpy()) 
+            
+            # Take first 9 examples to be plotted for each # epochs
+            # if((i+1)%(math.floor(len(data_loader)/2)) == 0):
+                # outputs.append((i, img[0:4, :, :, :], recon[0:4, :, :, :], loss))
+                
+        # Printing Training info
+        train_info_print(loss, loss_mssg, epoch_x, loss_y, i)
+        
+        # Save the model of the current Epoch (starting point for early ending)
+        save_model_optimizer(model, save_path, optimizer, str(iter_num_features) + "ep" + str(i))
+        
+        # Plotting the images for convolutional Autoencoder
+        # feed_forard_visualize(outputs)
+    
+        # Deconvolution layer filter plotting
+        deconv_filter_plot(model, epoch, loss)
     
     # freeze all the layers before appending the model into the prev_arrays
     for para in model.parameters():

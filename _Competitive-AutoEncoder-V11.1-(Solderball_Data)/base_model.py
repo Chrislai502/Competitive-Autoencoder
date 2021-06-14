@@ -46,43 +46,16 @@ class Competitive_Autoencoder(nn.Module):
             
         else:
             self.encoder_in_use = nn.Sequential(
-                nn.Conv2d(1, num_features, 5, stride=1, padding = 2),     
+                nn.Conv2d(3, num_features, 5, stride=1, padding = 2),     
                 nn.ReLU(),
                 nn.BatchNorm2d(num_features),
                 nn.Conv2d(num_features, num_features, 5, stride=1, padding = 2),
                 nn.BatchNorm2d(num_features),
             )   
-            
-            
-        #Image size:N, 28, 28
-        # Notes:
-        #   Final with and without relu almost the same
-        #   Base layer would first try to minimize the loss
-        #   number of features would be 32, 64, 128
-        
-        # Encoders
-        # self.base_encoder = nn.Sequential(
-        #     nn.Conv2d(1, num_features, 5, stride=1, padding = 2),     
-        #     nn.ReLU(),
-        #     nn.BatchNorm2d(num_features),
-        #     nn.Conv2d(num_features, num_features, 5, stride=1, padding = 2),
-        #     nn.BatchNorm2d(num_features),
-        # )
-        
-        # self.stack_encoder = nn.Sequential(
-        #     nn.Conv2d(self.prev_num_features, num_features, 5, stride=1, padding = 2),     
-        #     nn.BatchNorm2d(num_features),
-        # )
-        
         # Decoder
-        self.decoder = nn.ConvTranspose2d(in_channels=num_features, out_channels=1, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
-        
-        # encoder_in_use attribute -- if no previous_num_feature is given, it is base model
-        # if num_prev_models == 0:
-        #     self.encoder_in_use = self.base_encoder
-        # else:
-        #     self.encoder_in_use = self.stack_encoder
-    
+        self.decoder = nn.ConvTranspose2d(in_channels=num_features, out_channels=3, kernel_size=11, stride =1, padding = 5) # padding will decrease output size # size:N, 28, 28
+
+
     ''' TRAINING Feed Forward Function
     - Checks a list of prev_models
     - if there are prev_models, order as follows: [base_Model, stack_1, stack_2......., stack_n]
