@@ -36,6 +36,7 @@ class Competitive_Autoencoder(nn.Module):
         # first get the very last layer of the previous models' # of output features
         self.num_prev_models = len(prev_models)
         
+        # assign a single layer or multiple layers as the model depending
         if self.num_prev_models != 0:
             prev_num_features = prev_models[-1].get_numfeatures()
             
@@ -75,10 +76,14 @@ class Competitive_Autoencoder(nn.Module):
         return decoded
     
     ''' bottleneck()
-    - Feeds Forward Input:x up until the bottleneck layer
+    - Feeds Forward Input:x up until the bottleneck layer in all the previous models and this model
     - Applies Relu activation because spatial & lifetime is lifted (based on AliReza Paper)
     '''
     def bottleneck(self, x):
+        if self.num_prev_models != 0:
+            for model in self.prev_models:
+                x = model.bottleneck(x)
+
         return F.relu(self.encoder_in_use(x))
     
     ''' get_numfeatures()
@@ -87,6 +92,11 @@ class Competitive_Autoencoder(nn.Module):
     def get_numfeatures(self):
         return self.num_features
     
+    ''' set_lifetime()
+    - returns the number of features used in this layer/base_model
+    '''
+    def set_lifetime(self, k):
+        self.k = k
     
     ''' spatial_sparsity_()
     - Modifies feature map tensors to only retain one, max-valued pixel for every feature, every batch. The rest is set to ZERO

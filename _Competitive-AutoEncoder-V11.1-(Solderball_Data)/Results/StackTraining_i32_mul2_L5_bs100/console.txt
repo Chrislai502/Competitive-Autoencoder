@@ -1,0 +1,142 @@
+Training for: StackTraining_i32_mul2_L5_bs100
+WARNING: StackTraining_i32_mul2_L5_bs100 folder already exists... do you wish to overwrite inside files?
+Press "e" to STOP, "y" to proceed. Write () reason to create new folder
+
+y
+Tranining stack: 1, epoch: 1
+['Epoch:41, Loss:1.8291']
+Tranining stack: 1, epoch: 2
+['Epoch:41, Loss:1.7195']
+Tranining stack: 1, epoch: 3
+['Epoch:41, Loss:1.6294']
+Tranining stack: 1, epoch: 4
+['Epoch:41, Loss:1.5369']
+Tranining stack: 1, epoch: 5
+['Epoch:41, Loss:1.4886']
+Tranining stack: 1, epoch: 6
+['Epoch:41, Loss:1.3803']
+Tranining stack: 1, epoch: 7
+['Epoch:41, Loss:1.2985']
+Tranining stack: 1, epoch: 8
+['Epoch:41, Loss:1.2458']
+Tranining stack: 1, epoch: 9
+['Epoch:41, Loss:1.1507']
+Tranining stack: 1, epoch: 10
+['Epoch:41, Loss:1.1322']
+Which model epoch would you like to retain from stack1?
+
+10
+Filename Does Not Exist!
+
+Which model epoch would you like to retain from stack1?
+
+9
+Model for epoch 9 Successfully loaded!
+Tranining stack: 2, epoch: 1
+1.6008']
+Tranining stack: 2, epoch: 2
+['Epoch:41, Loss:1.3934']
+Tranining stack: 2, epoch: 3
+['Epoch:41, Loss:1.0883']
+Tranining stack: 2, epoch: 4
+['Epoch:41, Loss:1.2372']
+Tranining stack: 2, epoch: 5
+['Epoch:41, Loss:1.2403']
+Tranining stack: 2, epoch: 6
+['Epoch:41, Loss:1.0952']
+Tranining stack: 2, epoch: 7
+['Epoch:41, Loss:1.0544']
+Tranining stack: 2, epoch: 8
+['Epoch:41, Loss:0.9739']
+Tranining stack: 2, epoch: 9
+['Epoch:41, Loss:0.9021']
+Tranining stack: 2, epoch: 10
+['Epoch:41, Loss:0.9676']
+Tranining stack: 2, epoch: 11
+['Epoch:41, Loss:0.8818']
+Tranining stack: 2, epoch: 12
+['Epoch:41, Loss:0.9168']
+Tranining stack: 2, epoch: 13
+['Epoch:41, Loss:0.8526']
+Tranining stack: 2, epoch: 14
+['Epoch:41, Loss:0.7907']
+Tranining stack: 2, epoch: 15
+['Epoch:41, Loss:0.7522']
+Tranining stack: 2, epoch: 16
+['Epoch:41, Loss:0.7396']
+Tranining stack: 2, epoch: 17
+['Epoch:41, Loss:0.6898']
+Tranining stack: 2, epoch: 18
+['Epoch:41, Loss:0.6781']
+Tranining stack: 2, epoch: 19
+['Epoch:41, Loss:0.6472']
+Tranining stack: 2, epoch: 20
+['Epoch:41, Loss:0.6153']
+Which model epoch would you like to retain from stack2?
+
+19
+Model for epoch 19 Successfully loaded!
+Tranining stack: 3, epoch: 1
+['Epoch:41, Loss:2.7430']
+Tranining stack: 3, epoch: 2
+['Epoch:41, Loss:2.3470']
+Tranining stack: 3, epoch: 3
+['Epoch:41, Loss:1.9427']
+Tranining stack: 3, epoch: 4
+['Epoch:41, Loss:1.7093']
+Tranining stack: 3, epoch: 5
+1.2829']
+Tranining stack: 3, epoch: 6
+['Epoch:41, Loss:1.5061']
+Tranining stack: 3, epoch: 7
+['Epoch:41, Loss:1.1999']
+Tranining stack: 3, epoch: 8
+['Epoch:41, Loss:0.8143']
+Tranining stack: 3, epoch: 9
+['Epoch:41, Loss:1.6775']
+Tranining stack: 3, epoch: 10
+['Epoch:41, Loss:0.8912']
+Tranining stack: 3, epoch: 11
+['Epoch:41, Loss:1.2770']
+Tranining stack: 3, epoch: 12
+['Epoch:41, Loss:0.7195']
+Tranining stack: 3, epoch: 13
+['Epoch:41, Loss:0.8396']
+Tranining stack: 3, epoch: 14
+['Epoch:41, Loss:0.8025']
+Tranining stack: 3, epoch: 15
+['Epoch:41, Loss:0.6966']
+Tranining stack: 3, epoch: 16
+['Epoch:41, Loss:0.8074']
+Tranining stack: 3, epoch: 17
+['Epoch:41, Loss:0.9090']
+Tranining stack: 3, epoch: 18
+['Epoch:41, Loss:0.8333']
+Tranining stack: 3, epoch: 19
+['Epoch:41, Loss:0.7744']
+Tranining stack: 3, epoch: 20
+['Epoch:41, Loss:0.6355']
+Tranining stack: 3, epoch: 21
+['Epoch:41, Loss:0.8520']
+Tranining stack: 3, epoch: 22
+['Epoch:41, Loss:0.5648']
+Tranining stack: 3, epoch: 23
+['Epoch:41, Loss:0.5799']
+Tranining stack: 3, epoch: 24
+['Epoch:41, Loss:0.6008']
+Tranining stack: 3, epoch: 25
+['Epoch:41, Loss:0.7172']
+Tranining stack: 3, epoch: 26
+['Epoch:41, Loss:0.5107']
+Tranining stack: 3, epoch: 27
+['Epoch:41, Loss:0.6229']
+Tranining stack: 3, epoch: 28
+['Epoch:41, Loss:0.5600']
+Tranining stack: 3, epoch: 29
+['Epoch:41, Loss:0.5436']
+Tranining stack: 3, epoch: 30
+['Epoch:41, Loss:0.4986']
+Which model epoch would you like to retain from stack3?
+
+29
+Model for epoch 29 Successfully loaded!

@@ -6,9 +6,6 @@ Created on Sun Jun 13 22:15:18 2021
 """
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.optim import lr_scheduler
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
@@ -20,6 +17,49 @@ working_path = "E:/Chris/Competitive-Autoencoder/"
 sys.path.append(working_path)
 
 
+#%%
+'''
+@source https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
+'''
+from skimage import io, transform, filters
+
+class Rescale(object):
+    """Rescale the image in a sample to a given size.
+
+    Args:
+        output_size (tuple or int): Desired output size. If tuple, output is
+            matched to output_size. If int, smaller of image edges is matched
+            to output_size keeping aspect ratio the same.
+    """
+
+    def __init__(self, output_size):
+        # assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, sample):
+        image, landmarks = sample['image'], sample['landmarks']
+
+        # h, w = image.shape[:2]
+        # if isinstance(self.output_size, int):
+        #     if h > w:
+        #         new_h, new_w = self.output_size * h / w, self.output_size
+        #     else:
+        #         new_h, new_w = self.output_size, self.output_size * w / h
+        # else:
+        #     new_h, new_w = self.output_size
+
+        # new_h, new_w = int(new_h), int(new_w)
+
+        img = filters.gaussian(image, sigma=self.output_size)
+
+        # h and w are swapped for landmarks because for images,
+        # x and y axes are axis 1 and 0 respectively
+        # landmarks = landmarks * [new_w / w, new_h / h]
+
+        return {'image': img, 'landmarks': landmarks}
+#%%
+
+
 mean = np.array([0.5, 0.5, 0.5])
 std = np.array([0.25, 0.25, 0.25])
 
@@ -28,8 +68,9 @@ data_transforms = {
         # transforms.RandomResizedCrop(224),
         # transforms.RandomHorizontalFlip(),
         transforms.CenterCrop((120, 120)),
-        transforms.RandomCrop((30, 30)),
+        # transforms.RandomCrop((30, 30)),
         transforms.ToTensor(),
+        Rescale(2.375),
         transforms.Normalize(mean, std)
     ]),
     'val': transforms.Compose([
@@ -73,3 +114,28 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 
 imshow(out, title=[class_names[x] for x in classes])
+
+#%%
+import scipy.ndimage.filters as nd
+from PIL import Image
+from skimage import io, transform, filters
+
+# Read image
+img = Image.open('data/InariPads/train/padclass/4-1-bm6_img.jpg')
+  
+# Output Images
+img.show()
+  
+# prints format of image
+print(img.format)
+  
+# prints mode of image
+print(img.mode)
+
+print(img.shape)
+resize = transform.resize(img, (200, 200))
+print(resize.shape)
+gaussian = nd.gaussian_filter(img, 2.375)
+print(gaussian.shape)
+plt.imshow(gaussian)
+plt.show()
